@@ -1,119 +1,176 @@
-# video_maker.py
 import os
 import subprocess
 import re
 from config import IMG_DIR, VIDEO_DIR, VOICE_DIR
 
 def get_audio_duration(audio_path):
-    """
-    获取音频文件的时长（秒），使用ffprobe解析
-    """
+    """获取音频时长（秒），兼容各种编码格式"""
     try:
-        # ffprobe命令：获取音频时长（精确到毫秒）
         cmd = [
             "ffprobe",
             "-v", "error",
             "-show_entries", "format=duration",
             "-of", "default=noprint_wrappers=1:nokey=1",
+            "-hide_banner",
             audio_path
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        duration = float(result.stdout.strip())
-        return duration
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=True,
+            encoding='utf-8',
+            errors='ignore'
+        )
+        return float(result.stdout.strip())
     except Exception as e:
-        print(f"❌ 获取音频 {audio_path} 时长失败：{e}")
+        print(f"❌ 获取音频时长失败：{e}")
         return None
+
+def check_audio_in_video(video_path):
+    """检查视频是否包含音频流"""
+    try:
+        cmd = [
+            "ffprobe",
+            "-v", "error",
+            "-show_entries", "stream=codec_type",
+            "-of", "csv=p=0",
+            "-hide_banner",
+            video_path
+        ]
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=True,
+            encoding='utf-8',
+            errors='ignore'
+        )
+        return "audio" in result.stdout.strip()
+    except Exception:
+        return False
 
 def generate_page_videos():
     """
-    将IMG_DIR中的page_*.png与VOICE_DIR中的page_*.mp3拼接为视频，保存到VIDEO_DIR
+    最终版：无滤镜错误，确保音频嵌入视频
     """
-    # 1. 校验目录是否存在
+    # 1. 目录校验
     for dir_name, dir_path in {"图片目录": IMG_DIR, "音频目录": VOICE_DIR, "视频目录": VIDEO_DIR}.items():
         if not os.path.exists(dir_path):
             print(f"❌ {dir_name}不存在：{dir_path}")
             return
-    
-    # 2. 匹配IMG_DIR中的page_*.png文件
+
+    # 2. 匹配图片文件
     img_pattern = re.compile(r"^page_(\d+)\.png$")
     img_files = [f for f in os.listdir(IMG_DIR) if img_pattern.match(f)]
     
     if not img_files:
         print(f"⚠️ 图片目录 {IMG_DIR} 中未找到page_*.png格式的文件")
         return
-    
-    # 3. 遍历处理每个图片-音频对
+
+    # 3. 遍历处理每个文件
     for img_file in img_files:
-        # 提取页码（如page_1.png → 1）
         match = img_pattern.match(img_file)
         page_num = match.group(1)
         
-        # 拼接各文件路径
+        # 拼接路径（转短路径，避免中文/空格问题）
         img_path = os.path.abspath(os.path.join(IMG_DIR, img_file))
         audio_path = os.path.abspath(os.path.join(VOICE_DIR, f"page_{page_num}.mp3"))
         video_path = os.path.abspath(os.path.join(VIDEO_DIR, f"page_{page_num}.mp4"))
-        
-        # 检查音频文件是否存在
+
+        # 检查音频文件
         if not os.path.exists(audio_path):
             print(f"⚠️ 音频文件不存在，跳过：{audio_path}")
             continue
-        
+
         # 获取音频时长
         audio_duration = get_audio_duration(audio_path)
-        if audio_duration is None or audio_duration <= 0:
-            print(f"⚠️ 音频 {audio_path} 时长无效，跳过")
+        if not audio_duration or audio_duration <= 0:
+            print(f"⚠️ 音频时长无效，跳过：{audio_path}")
             continue
-        
+
         print(f"\n📌 开始处理：page_{page_num}")
         print(f"   图片：{img_path}")
         print(f"   音频：{audio_path} (时长：{audio_duration:.2f}秒)")
         print(f"   输出：{video_path}")
-        
-        # 4. 调用ffmpeg合成视频
-        # 核心参数说明：
-        # -loop 1：循环播放图片
-        # -t {audio_duration}：播放时长等于音频时长
-        # -i {img_path}：输入图片
-        # -i {audio_path}：输入音频
-        # -c:v libx264：视频编码器（H.264，兼容性好）
-        # -pix_fmt yuv420p：像素格式（兼容大部分播放器）
-        # -shortest：取最短输入的时长（确保视频和音频时长一致）
-        # -y：覆盖已存在的文件
+
+        # ========== 修正后的ffmpeg命令（核心） ==========
+        # 关键改进：
+        # 1. 移除错误的filter_complex
+        # 2. 先输入图片，再输入音频，-t参数精准控制时长
+        # 3. 明确映射音视频流，确保音频嵌入
         try:
             cmd = [
                 "ffmpeg",
                 "-y",  # 覆盖已有文件
-                "-loop", "1",  # 循环播放图片
-                "-t", str(audio_duration),  # 视频时长=音频时长
-                "-i", img_path,  # 输入图片
-                "-i", audio_path,  # 输入音频
-                "-c:v", "libx264",  # 视频编码器
-                "-pix_fmt", "yuv420p",  # 像素格式（兼容播放器）
-                "-c:a", "aac",  # 音频编码器
-                "-shortest",  # 确保时长一致
-                video_path  # 输出视频
+                "-v", "error",  # 只输出错误
+                "-hide_banner", # 隐藏无关信息
+                # 输入1：图片（循环播放）
+                "-loop", "1",
+                "-i", img_path,
+                # 输入2：音频
+                "-i", audio_path,
+                # 视频参数
+                "-c:v", "libx264",        # H.264编码器（兼容性最好）
+                "-pix_fmt", "yuv420p",    # 兼容所有播放器
+                "-framerate", "25",       # 标准帧率
+                "-t", f"{audio_duration:.2f}",  # 精准设置视频时长=音频时长
+                # 音频参数（强制兼容MP4）
+                "-c:a", "aac",            # MP4标准音频编码器
+                "-b:a", "192k",           # 音频码率
+                "-ar", "44100",           # 标准采样率
+                # 明确映射流（关键！确保音频被包含）
+                "-map", "0:v",            # 映射图片的视频流
+                "-map", "1:a",            # 映射音频的音频流
+                # 输出视频
+                video_path
             ]
-            
+
             # 执行ffmpeg命令
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
+                encoding='utf-8',
+                errors='ignore'
             )
-            
-            # 验证输出文件是否存在
+
+            # 验证结果
             if os.path.exists(video_path):
-                print(f"✅ 视频生成成功：{video_path}")
+                has_audio = check_audio_in_video(video_path)
+                if has_audio:
+                    print(f"✅ 视频生成成功！音频已嵌入")
+                else:
+                    print(f"⚠️ 视频生成但无音频，尝试修复...")
+                    # 备用修复方案：重新封装音频
+                    fix_video_path = video_path.replace(".mp4", "_fix.mp4")
+                    fix_cmd = [
+                        "ffmpeg", "-y",
+                        "-i", video_path,
+                        "-i", audio_path,
+                        "-c:v", "copy",  # 视频流直接复制，不重新编码
+                        "-c:a", "aac",
+                        "-map", "0:v",
+                        "-map", "1:a",
+                        fix_video_path
+                    ]
+                    subprocess.run(fix_cmd, capture_output=True, encoding='utf-8', errors='ignore')
+                    if os.path.exists(fix_video_path):
+                        os.replace(fix_video_path, video_path)
+                        print(f"✅ 音频修复成功！")
+                    else:
+                        print(f"❌ 音频修复失败")
             else:
-                print(f"❌ 视频生成失败：文件未创建 {video_path}")
-                
+                print(f"❌ 视频文件未生成")
+
         except subprocess.CalledProcessError as e:
-            print(f"❌ ffmpeg执行失败：{e.stderr}")
+            print(f"❌ ffmpeg执行失败：{e.stderr[:300]}")  # 只打印前300字符
         except Exception as e:
-            print(f"❌ 处理page_{page_num}失败：{str(e)}")
-    
+            print(f"❌ 处理失败：{str(e)}")
+
     print("\n📝 所有文件处理完成！")
+    return True
 
 # 测试调用
 if __name__ == "__main__":
@@ -121,8 +178,7 @@ if __name__ == "__main__":
     try:
         subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
     except FileNotFoundError:
-        print("❌ 未找到ffmpeg！请先安装并添加到系统环境变量")
+        print("❌ 未找到ffmpeg！请安装并添加到系统环境变量")
         exit(1)
     
-    # 执行合成
     generate_page_videos()

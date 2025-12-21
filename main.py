@@ -30,34 +30,34 @@ def main():
     print("开始PPT转视频处理")
     print("=" * 50)
     
-    # 步骤1: 解析PPT
-    print("\n[步骤1] 解析PPT文件...")
-    try:
-        ppt_text = extract_ppt_text(ppt_path)
-        print("ppt_text\n",ppt_text)
-        pptx_to_images(ppt_path)
-        print("PPT解析为图片完成")
-    except Exception as e:
-        print(f"PPT解析失败: {e}")
-        sys.exit(1)
+    # # 步骤1: 解析PPT
+    # print("\n[步骤1] 解析PPT文件...")
+    # try:
+    #     ppt_text = extract_ppt_text(ppt_path)
+    #     print("ppt_text\n",ppt_text)
+    #     pptx_to_images(ppt_path)
+    #     print("PPT解析为图片完成")
+    # except Exception as e:
+    #     print(f"PPT解析失败: {e}")
+    #     sys.exit(1)
     
-    # 步骤2: AI生成讲稿
-    print("\n[步骤2] AI生成讲稿...")
-    if not generate_ai_script(ppt_text):
-        print("AI讲稿生成失败")
-        sys.exit(1)
+    # # 步骤2: AI生成讲稿
+    # print("\n[步骤2] AI生成讲稿...")
+    # if not generate_ai_script(ppt_text):
+    #     print("AI讲稿生成失败")
+    #     sys.exit(1)
     
-    # 步骤3: 语音合成
-    print("\n[步骤3] 语音合成...")
-    if not synthesize_voices():
-        print("语音合成失败")
-        sys.exit(1)
+    # # 步骤3: 语音合成
+    # print("\n[步骤3] 语音合成...")
+    # if not synthesize_voices():
+    #     print("语音合成失败")
+    #     sys.exit(1)
     
-    # 步骤4: 生成单页视频
-    print("\n[步骤4] 生成单页视频...")
-    if not generate_page_videos():
-        print("单页视频生成失败")
-        sys.exit(1)
+    # # 步骤4: 生成单页视频
+    # print("\n[步骤4] 生成单页视频...")
+    # if not generate_page_videos():
+    #     print("单页视频生成失败")
+    #     sys.exit(1)
     
     # 步骤5: 合并视频
     print("\n[步骤5] 合并视频...")

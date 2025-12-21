@@ -153,30 +153,30 @@ def pptx_to_images(pptx_path, dpi=96):
         pythoncom.CoUninitialize()
 
 # def save_slide_xml(slide, slide_index, output_dir):
-    """
-    保存幻灯片的XML表示（简化版）
-    实际项目中需要根据PPT结构创建更详细的XML
-    """
-    xml_file = os.path.join(output_dir, f"slide_{slide_index + 1}.xml")
+#     """
+#     保存幻灯片的XML表示（简化版）
+#     实际项目中需要根据PPT结构创建更详细的XML
+#     """
+#     xml_file = os.path.join(output_dir, f"slide_{slide_index + 1}.xml")
     
-    # 创建XML结构
-    root = ET.Element("slide")
-    root.set("number", str(slide_index + 1))
+#     # 创建XML结构
+#     root = ET.Element("slide")
+#     root.set("number", str(slide_index + 1))
     
-    # 添加文本元素
-    for shape_index, shape in enumerate(slide.Shapes):
-        if isinstance(shape, IAutoShape):
-            shape_elem = ET.SubElement(root, "shape")
-            shape_elem.set("id", str(shape_index))
-            shape_elem.set("type", "text")
+#     # 添加文本元素
+#     for shape_index, shape in enumerate(slide.Shapes):
+#         if isinstance(shape, IAutoShape):
+#             shape_elem = ET.SubElement(root, "shape")
+#             shape_elem.set("id", str(shape_index))
+#             shape_elem.set("type", "text")
             
-            for para_index, paragraph in enumerate(shape.TextFrame.Paragraphs):
-                text_elem = ET.SubElement(shape_elem, "text")
-                text_elem.set("para", str(para_index))
-                text_elem.text = paragraph.Text
+#             for para_index, paragraph in enumerate(shape.TextFrame.Paragraphs):
+#                 text_elem = ET.SubElement(shape_elem, "text")
+#                 text_elem.set("para", str(para_index))
+#                 text_elem.text = paragraph.Text
     
-    # 写入文件
-    tree = ET.ElementTree(root)
-    tree.write(xml_file, encoding="utf-8", xml_declaration=True)
+#     # 写入文件
+#     tree = ET.ElementTree(root)
+#     tree.write(xml_file, encoding="utf-8", xml_declaration=True)
     
-    return xml_file
+#     return xml_file
