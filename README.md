@@ -30,10 +30,12 @@
 ├── 📄 video_merger.py              # 视频合并器
 ├── 🔊 voice/                       # 生成的音频文件目录
 ├── 🎬 video/                       # 生成的视频文件目录
+├── 🎬 img/                         # 生成的图片文件目录
 ├── 📝 script/                      # 生成的脚本文件目录
 ├── 🗑️ temp/                        # 临时文件目录
 ```
 ## 🚀 项目启动
+`下载ffmpeg并添加到环境变量`
 1. 第一步：**配置API密钥**
 - 复制配置文件模板：
 
@@ -60,6 +62,7 @@ python config.py
 如果看到所有配置项显示 ✅ 表示配置成功。
 
 2. 第二步：安装依赖
+
 ```bash
 pip install -r requirements.txt
 ```
