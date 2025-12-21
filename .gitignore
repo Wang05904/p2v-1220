@@ -1,0 +1,97 @@
+# ============================================
+# Python
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+.python-version
+
+# ============================================
+# 测试文件（忽略所有test_开头的.py文件）
+# ============================================
+test_*.py
+*_test.py
+tests/
+Test/
+test/
+testing/
+
+# ============================================
+# 环境变量和敏感信息（绝对不要提交！）
+# ============================================
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+secrets.txt
+credentials.json
+*.key
+*.pem
+*.p12
+
+# ============================================
+# 生成的媒体文件
+# ============================================
+voice/
+video/
+temp/
+*.mp3
+*.wav
+*.mp4
+*.avi
+*.mov
+*.jpg
+*.png
+*.gif
+
+# ============================================
+# 开发工具和IDE
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ============================================
+# 操作系统文件
+# ============================================
+ehthumbs.db
+Icon?
+ehthumbs_vista.db
+
+# ============================================
+# 项目特定文件
+# ============================================
+# 临时文件
+*.tmp
+*.temp
+*.log
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 缓存文件
+.cache/

@@ -1,0 +1,5 @@
+# 依赖库列表
+spire.presentation
+requests
+websocket-client
+Pillow
