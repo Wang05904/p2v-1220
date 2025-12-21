@@ -3,3 +3,4 @@ spire.presentation
 requests
 websocket-client
 Pillow
+pywin32

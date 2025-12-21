@@ -5,7 +5,7 @@
 
 import sys
 import os
-from ppt_parser import extract_ppt_text
+from ppt_parser import extract_ppt_text,pptx_to_images
 from ai_script_generator import generate_ai_script
 from voice_synthesizer import synthesize_voices
 from video_generator import generate_page_videos
@@ -30,20 +30,22 @@ def main():
     print("开始PPT转视频处理")
     print("=" * 50)
     
-    # # 步骤1: 解析PPT
-    # print("\n[步骤1] 解析PPT文件...")
-    # try:
-    #     ppt_text = extract_ppt_text(ppt_path)
-    #     print("ppt_text\n",ppt_text)
-    # except Exception as e:
-    #     print(f"PPT解析失败: {e}")
-    #     sys.exit(1)
+    # 步骤1: 解析PPT
+    print("\n[步骤1] 解析PPT文件...")
+    try:
+        ppt_text = extract_ppt_text(ppt_path)
+        print("ppt_text\n",ppt_text)
+        pptx_to_images(ppt_path)
+        print("PPT解析为图片完成")
+    except Exception as e:
+        print(f"PPT解析失败: {e}")
+        sys.exit(1)
     
-    # # 步骤2: AI生成讲稿
-    # print("\n[步骤2] AI生成讲稿...")
-    # if not generate_ai_script(ppt_text):
-    #     print("AI讲稿生成失败")
-    #     sys.exit(1)
+    # 步骤2: AI生成讲稿
+    print("\n[步骤2] AI生成讲稿...")
+    if not generate_ai_script(ppt_text):
+        print("AI讲稿生成失败")
+        sys.exit(1)
     
     # 步骤3: 语音合成
     print("\n[步骤3] 语音合成...")
@@ -51,23 +53,23 @@ def main():
         print("语音合成失败")
         sys.exit(1)
     
-    # # 步骤4: 生成单页视频
-    # print("\n[步骤4] 生成单页视频...")
-    # if not generate_page_videos():
-    #     print("单页视频生成失败")
-    #     sys.exit(1)
+    # 步骤4: 生成单页视频
+    print("\n[步骤4] 生成单页视频...")
+    if not generate_page_videos():
+        print("单页视频生成失败")
+        sys.exit(1)
     
     # 步骤5: 合并视频
-    # print("\n[步骤5] 合并视频...")
-    # success, final_video = merge_videos()
+    print("\n[步骤5] 合并视频...")
+    success, final_video = merge_videos()
     
-    # if success:
-    #     print("\n" + "=" * 50)
-    #     print(f"处理完成！最终视频已保存为: {final_video}")
-    #     print("=" * 50)
-    # else:
-    #     print("\n视频合并失败")
-    #     sys.exit(1)
+    if success:
+        print("\n" + "=" * 50)
+        print(f"处理完成！最终视频已保存为: {final_video}")
+        print("=" * 50)
+    else:
+        print("\n视频合并失败")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

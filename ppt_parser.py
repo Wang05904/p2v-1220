@@ -8,6 +8,9 @@ import os
 from spire.presentation import *
 from spire.presentation.common import *
 import xml.etree.ElementTree as ET
+import win32com.client
+import pythoncom
+from config import IMG_DIR
 
 def extract_text_from_shape(shape, text_list):
     """递归提取形状中的文本"""
@@ -44,7 +47,7 @@ def extract_slide_text(slide):
 
 def extract_ppt_text(ppt_path, output_xml_dir="temp"):
     """
-    从PPT中提取所有文本内容并保存为XML文件
+    从PPT中提取所有文本内容并保存为每页ppt为图片
     
     参数:
         ppt_path: PPT文件路径
@@ -85,6 +88,69 @@ def extract_ppt_text(ppt_path, output_xml_dir="temp"):
     
     # 返回格式化的文本
     return "\n".join(formatted_text_parts)
+
+def pptx_to_images(pptx_path, dpi=96):
+    """
+    Windows系统下使用PowerPoint原生引擎转换PPTX到图片
+    图片自动保存到项目根目录的img文件夹下
+    """
+    # 初始化COM环境
+    pythoncom.CoInitialize()
+    output_dir = IMG_DIR
+    # 确保img文件夹存在（不存在则创建）
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # 检查输入PPT文件（转换为绝对路径）
+    pptx_path = os.path.abspath(pptx_path)
+    if not os.path.exists(pptx_path):
+        print(f"❌ 错误：输入文件 {pptx_path} 不存在！")
+        pythoncom.CoUninitialize()
+        return
+    
+    powerpoint = None
+    presentation = None
+    
+    try:
+        # 初始化PowerPoint应用
+        powerpoint = win32com.client.Dispatch("PowerPoint.Application")
+        
+        # 打开演示文稿
+        presentation = powerpoint.Presentations.Open(
+            FileName=pptx_path,
+            ReadOnly=True,
+            WithWindow=True
+        )
+        
+        slide_count = presentation.Slides.Count
+        print(f"开始转换：共 {slide_count} 页幻灯片")
+        print(f"图片将保存到：{output_dir}")
+        
+        # 逐页导出（使用img文件夹的绝对路径）
+        for i in range(1, slide_count + 1):
+            slide = presentation.Slides(i)
+            # 生成img文件夹下的绝对路径（确保反斜杠）
+            output_path = os.path.join(output_dir, f"page_{i}.png").replace("/", "\\")
+            
+            # 计算幻灯片宽度（按DPI）
+            slide_width_inch = presentation.PageSetup.SlideWidth / 914400
+            slide_width_px = int(slide_width_inch * dpi)
+            
+            # 导出图片到img文件夹
+            slide.Export(output_path, "PNG", slide_width_px, 0)
+            print(f"✅ 已导出第{i}页：{output_path}")
+    
+    except Exception as e:
+        print(f"❌ 转换失败：{str(e)}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        # 清理资源
+        if presentation:
+            presentation.Close()
+        if powerpoint:
+            powerpoint.Quit()
+            del powerpoint
+        pythoncom.CoUninitialize()
 
 # def save_slide_xml(slide, slide_index, output_dir):
     """

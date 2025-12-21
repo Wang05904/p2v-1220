@@ -1,175 +1,128 @@
-# 单页视频生成模块
-"""
-单页视频生成模块 - 使用ffmpeg生成每页的视频
-参考FFmpeg使用技巧[citation:5]
-"""
-
+# video_maker.py
 import os
 import subprocess
-import xml.etree.ElementTree as ET
-from config import VIDEO_DIR, TEMP_DIR, FFMPEG_PATH, VOICE_DIR
-
-def generate_page_videos():
-    """
-    为每页PPT生成带音频的视频
-    
-    返回:
-        bool: 是否成功生成所有视频
-    """
-    os.makedirs(VIDEO_DIR, exist_ok=True)
-    os.makedirs(TEMP_DIR, exist_ok=True)
-    
-    # 获取XML和音频文件
-    xml_files = [f for f in os.listdir(TEMP_DIR) if f.startswith('slide_') and f.endswith('.xml')]
-    audio_files = [f for f in os.listdir(VOICE_DIR) if f.endswith('.mp3')]
-    
-    if not xml_files or not audio_files:
-        print("错误：缺少XML或音频文件")
-        return False
-    
-    success_count = 0
-    
-    for xml_file in sorted(xml_files, key=lambda x: int(x.split('_')[1].split('.')[0])):
-        page_num = int(xml_file.split('_')[1].split('.')[0])
-        
-        # 查找对应的音频文件
-        audio_file = f"page_{page_num}.mp3"
-        audio_path = os.path.join(VOICE_DIR, audio_file)
-        
-        if not os.path.exists(audio_path):
-            print(f"警告：找不到音频文件 {audio_file}")
-            continue
-        
-        # 生成视频
-        video_path = os.path.join(VIDEO_DIR, f"page_{page_num}.mp4")
-        
-        if create_single_video(xml_file, audio_path, video_path):
-            success_count += 1
-            print(f"已生成视频: {video_path}")
-        else:
-            print(f"生成视频失败: page_{page_num}")
-    
-    print(f"视频生成完成: {success_count}/{len(xml_files)} 个文件成功")
-    return success_count > 0
-
-def create_single_video(xml_file, audio_path, output_path):
-    """
-    创建单页PPT视频
-    
-    参数:
-        xml_file: XML文件名
-        audio_path: 音频文件路径
-        output_path: 输出视频路径
-    
-    返回:
-        bool: 是否成功
-    """
-    xml_path = os.path.join(TEMP_DIR, xml_file)
-    
-    try:
-        # 解析XML获取页面元素
-        tree = ET.parse(xml_path)
-        root = tree.getroot()
-        
-        # 获取音频时长
-        audio_duration = get_audio_duration(audio_path)
-        
-        if audio_duration is None:
-            print(f"错误：无法获取音频时长 {audio_path}")
-            return False
-        
-        # 创建临时图片（这里简化处理，实际应该从PPT提取或创建）
-        # 在实际项目中，这里应该解析XML创建对应的图片或视频序列
-        temp_image = create_temp_image(xml_file)
-        
-        if not temp_image:
-            return False
-        
-        # 使用ffmpeg创建视频
-        # 基本命令：将图片转为视频，然后添加音频[citation:5]
-        cmd = [
-            FFMPEG_PATH,
-            '-y',  # 覆盖输出文件
-            '-loop', '1',
-            '-i', temp_image,
-            '-i', audio_path,
-            '-c:v', 'libx264',
-            '-t', str(audio_duration),
-            '-pix_fmt', 'yuv420p',
-            '-shortest',
-            output_path
-        ]
-        
-        # 执行ffmpeg命令
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        
-        if result.returncode != 0:
-            print(f"ffmpeg错误: {result.stderr}")
-            return False
-        
-        # 清理临时文件
-        os.remove(temp_image)
-        
-        return True
-        
-    except Exception as e:
-        print(f"创建视频失败: {e}")
-        return False
+import re
+from config import IMG_DIR, VIDEO_DIR, VOICE_DIR
 
 def get_audio_duration(audio_path):
     """
-    获取音频文件时长
-    
-    参数:
-        audio_path: 音频文件路径
-    
-    返回:
-        float: 音频时长（秒），失败返回None
+    获取音频文件的时长（秒），使用ffprobe解析
     """
     try:
+        # ffprobe命令：获取音频时长（精确到毫秒）
         cmd = [
-            FFMPEG_PATH,
-            '-i', audio_path,
-            '-f', 'null',
-            '-'
+            "ffprobe",
+            "-v", "error",
+            "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            audio_path
         ]
-        
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        
-        # 从输出中解析时长
-        for line in result.stderr.split('\n'):
-            if 'Duration:' in line:
-                time_str = line.split('Duration:')[1].split(',')[0].strip()
-                h, m, s = time_str.split(':')
-                return float(h) * 3600 + float(m) * 60 + float(s)
-        
-        return None
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        duration = float(result.stdout.strip())
+        return duration
     except Exception as e:
-        print(f"获取音频时长失败: {e}")
+        print(f"❌ 获取音频 {audio_path} 时长失败：{e}")
         return None
 
-def create_temp_image(xml_file):
+def generate_page_videos():
     """
-    创建临时图片用于视频生成
-    在实际项目中，这里应该根据XML内容创建对应的图像
+    将IMG_DIR中的page_*.png与VOICE_DIR中的page_*.mp3拼接为视频，保存到VIDEO_DIR
     """
-    from PIL import Image, ImageDraw, ImageFont
+    # 1. 校验目录是否存在
+    for dir_name, dir_path in {"图片目录": IMG_DIR, "音频目录": VOICE_DIR, "视频目录": VIDEO_DIR}.items():
+        if not os.path.exists(dir_path):
+            print(f"❌ {dir_name}不存在：{dir_path}")
+            return
     
-    # 创建简单的图片
-    img_path = os.path.join(TEMP_DIR, f"temp_{xml_file.replace('.xml', '.png')}")
+    # 2. 匹配IMG_DIR中的page_*.png文件
+    img_pattern = re.compile(r"^page_(\d+)\.png$")
+    img_files = [f for f in os.listdir(IMG_DIR) if img_pattern.match(f)]
     
+    if not img_files:
+        print(f"⚠️ 图片目录 {IMG_DIR} 中未找到page_*.png格式的文件")
+        return
+    
+    # 3. 遍历处理每个图片-音频对
+    for img_file in img_files:
+        # 提取页码（如page_1.png → 1）
+        match = img_pattern.match(img_file)
+        page_num = match.group(1)
+        
+        # 拼接各文件路径
+        img_path = os.path.abspath(os.path.join(IMG_DIR, img_file))
+        audio_path = os.path.abspath(os.path.join(VOICE_DIR, f"page_{page_num}.mp3"))
+        video_path = os.path.abspath(os.path.join(VIDEO_DIR, f"page_{page_num}.mp4"))
+        
+        # 检查音频文件是否存在
+        if not os.path.exists(audio_path):
+            print(f"⚠️ 音频文件不存在，跳过：{audio_path}")
+            continue
+        
+        # 获取音频时长
+        audio_duration = get_audio_duration(audio_path)
+        if audio_duration is None or audio_duration <= 0:
+            print(f"⚠️ 音频 {audio_path} 时长无效，跳过")
+            continue
+        
+        print(f"\n📌 开始处理：page_{page_num}")
+        print(f"   图片：{img_path}")
+        print(f"   音频：{audio_path} (时长：{audio_duration:.2f}秒)")
+        print(f"   输出：{video_path}")
+        
+        # 4. 调用ffmpeg合成视频
+        # 核心参数说明：
+        # -loop 1：循环播放图片
+        # -t {audio_duration}：播放时长等于音频时长
+        # -i {img_path}：输入图片
+        # -i {audio_path}：输入音频
+        # -c:v libx264：视频编码器（H.264，兼容性好）
+        # -pix_fmt yuv420p：像素格式（兼容大部分播放器）
+        # -shortest：取最短输入的时长（确保视频和音频时长一致）
+        # -y：覆盖已存在的文件
+        try:
+            cmd = [
+                "ffmpeg",
+                "-y",  # 覆盖已有文件
+                "-loop", "1",  # 循环播放图片
+                "-t", str(audio_duration),  # 视频时长=音频时长
+                "-i", img_path,  # 输入图片
+                "-i", audio_path,  # 输入音频
+                "-c:v", "libx264",  # 视频编码器
+                "-pix_fmt", "yuv420p",  # 像素格式（兼容播放器）
+                "-c:a", "aac",  # 音频编码器
+                "-shortest",  # 确保时长一致
+                video_path  # 输出视频
+            ]
+            
+            # 执行ffmpeg命令
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            
+            # 验证输出文件是否存在
+            if os.path.exists(video_path):
+                print(f"✅ 视频生成成功：{video_path}")
+            else:
+                print(f"❌ 视频生成失败：文件未创建 {video_path}")
+                
+        except subprocess.CalledProcessError as e:
+            print(f"❌ ffmpeg执行失败：{e.stderr}")
+        except Exception as e:
+            print(f"❌ 处理page_{page_num}失败：{str(e)}")
+    
+    print("\n📝 所有文件处理完成！")
+
+# 测试调用
+if __name__ == "__main__":
+    # 检查ffmpeg是否安装
     try:
-        # 创建一个简单的背景
-        img = Image.new('RGB', (1920, 1080), color='lightblue')
-        draw = ImageDraw.Draw(img)
-        
-        # 添加文字
-        text = f"PPT Page {xml_file.replace('.xml', '').replace('slide_', '')}"
-        # 注意：这里需要字体文件，简化处理
-        draw.text((100, 100), text, fill='black')
-        
-        img.save(img_path)
-        return img_path
-    except Exception as e:
-        print(f"创建临时图片失败: {e}")
-        return None
+        subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
+    except FileNotFoundError:
+        print("❌ 未找到ffmpeg！请先安装并添加到系统环境变量")
+        exit(1)
+    
+    # 执行合成
+    generate_page_videos()

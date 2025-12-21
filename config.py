@@ -94,12 +94,14 @@ SCRIPT_DIR = get_config('SCRIPT_DIR', "script")
 VOICE_DIR = get_config('VOICE_DIR', "voice")
 VIDEO_DIR = get_config('VIDEO_DIR', "video")
 TEMP_DIR = get_config('TEMP_DIR', "temp")
+IMG_DIR = get_config('IMG_DIR', "img")
 
 # 转换为绝对路径
 SCRIPT_DIR = str(BASE_DIR / SCRIPT_DIR)
 VOICE_DIR = str(BASE_DIR / VOICE_DIR)
 VIDEO_DIR = str(BASE_DIR / VIDEO_DIR)
 TEMP_DIR = str(BASE_DIR / TEMP_DIR)
+IMG_DIR = str(BASE_DIR / IMG_DIR)
 
 # ========== 配置验证 ==========
 def validate_config():
