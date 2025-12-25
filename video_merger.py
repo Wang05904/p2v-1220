@@ -138,7 +138,8 @@ def merge_videos():
     # 设置目录和文件（优先使用config中的TEMP_DIR，避免重复定义）
     OUTPUT_FILE = './final_video.mp4'
     # 优先使用config中的TEMP_DIR，没有则用临时目录
-    temp_dir = TEMP_DIR if 'TEMP_DIR' in locals() else './temp_faded_videos'
+    temp_dir = TEMP_DIR
+    # temp_dir = TEMP_DIR if 'TEMP_DIR' in locals() else './temp_faded_videos'
     
     # 确保目录存在
     Path(VIDEO_DIR).mkdir(parents=True, exist_ok=True)

@@ -213,6 +213,7 @@ def extract_only_images(pptx_path, output_json):
     print(f"   - 图片保存到: {temp_img_dir}")
     print(f"   - 共处理 {len(slides_data)} 张幻灯片")
     print(f"   - 共提取 {sum(len(slide['animated_elements']) for slide in slides_data)} 张图片")
+    return True
 
 if __name__ == "__main__":
     extract_only_images("test.pptx", "extract_pic.json")

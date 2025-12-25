@@ -8,10 +8,11 @@ import os
 from ppt_parser import extract_ppt_text,pptx_to_images
 from ai_script_generator import generate_ai_script
 from voice_synthesizer import synthesize_voices
-from video_generator import generate_page_videos
+from video_generator import generate_all_ppt_videos
 from video_merger import merge_videos
 from gen_json import extract_only_images
 from delete_image import run_deletion_test
+from add_voice import merge_video_audio
 
 def main():
     """主函数"""
@@ -32,48 +33,54 @@ def main():
     print("开始PPT转视频处理")
     print("=" * 50)
     
-    # 步骤1: 解析PPT
-    print("\n[步骤1] 解析PPT文件...")
-    try:
-        ppt_text = extract_ppt_text(ppt_path)
-        print("ppt_text\n",ppt_text)
-        pptx_to_images(ppt_path)
-        print("PPT解析为图片完成")
-    except Exception as e:
-        print(f"PPT解析失败: {e}")
-        sys.exit(1)
+    # # 步骤1: 解析PPT
+    # print("\n[步骤1] 解析PPT文件...")
+    # try:
+    #     ppt_text = extract_ppt_text(ppt_path)
+    #     print("ppt_text\n",ppt_text)
+    #     pptx_to_images(ppt_path)
+    #     print("PPT解析为图片完成")
+    # except Exception as e:
+    #     print(f"PPT解析失败: {e}")
+    #     sys.exit(1)
     
-    # 步骤2: AI生成讲稿
-    print("\n[步骤2] AI生成讲稿...")
-    if not generate_ai_script(ppt_text):
-        print("AI讲稿生成失败")
-        sys.exit(1)
+    # # 步骤2: AI生成讲稿
+    # print("\n[步骤2] AI生成讲稿...")
+    # if not generate_ai_script(ppt_text):
+    #     print("AI讲稿生成失败")
+    #     sys.exit(1)
     
-    # 步骤3: 语音合成
-    print("\n[步骤3] 语音合成...")
-    if not synthesize_voices():
-        print("语音合成失败")
-        sys.exit(1)
+    # # 步骤3: 语音合成
+    # print("\n[步骤3] 语音合成...")
+    # if not synthesize_voices():
+    #     print("语音合成失败")
+    #     sys.exit(1)
     
-    # 步骤4: 提取每页ppt的图片元素
-    print("\n[步骤4] 提取并保存每页ppt的图片元素...")
-    if not extract_only_images(ppt_path, "extract_pic.json"):
-        print("图片元素提取失败")
+    # # 步骤4: 提取每页ppt的图片元素
+    # print("\n[步骤4] 提取并保存每页ppt的图片元素...")
+    # if not extract_only_images(ppt_path, "extract_pic.json"):
+    #     print("图片元素提取失败")
+    #     sys.exit(1)
+
+    # # 步骤5: 将元素删除后的img保存至/img
+    # print("\n[步骤5] 将元素删除后的img保存至/img...")
+    # if not run_deletion_test("extract_pic.json",ppt_path):
+    #     print("删除图片失败")
+    #     sys.exit(1)
+
+    # 步骤6: 生成单页动画视频
+    # print("\n[步骤6] 生成单页动画视频...")
+    # if not generate_all_ppt_videos():
+    #     print("单页动画视频生成失败")
+    #     sys.exit(1)
+    
+    # 步骤7: 生成带音频单页视频
+    print("\n[步骤6] 生成带音频单页视频...")
+    if not merge_video_audio():
+        print("单页带音频视频生成失败")
         sys.exit(1)
 
-    # 步骤5: 将元素删除后的img保存至/img
-    print("\n[步骤5] 将元素删除后的img保存至/img...")
-    if not run_deletion_test("extract_pic.json",ppt_path):
-        print("删除图片失败")
-        sys.exit(1)
-
-    # 步骤6: 生成单页视频
-    print("\n[步骤6] 生成单页视频...")
-    if not generate_page_videos():
-        print("单页视频生成失败")
-        sys.exit(1)
-    
-    # 步骤7: 合并视频
+    # 步骤8: 合并视频
     print("\n[步骤7] 合并视频...")
     success, final_video = merge_videos()
     

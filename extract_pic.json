@@ -1,0 +1,223 @@
+{
+  "slides": [
+    {
+      "slide_number": "1",
+      "animated_elements": [
+        {
+          "id": "40",
+          "type": "picture",
+          "name": "图片 39",
+          "rId": "rId3",
+          "url": "ppt/media/image8.png",
+          "position": {
+            "x": 465875,
+            "y": 2484487,
+            "width": 1646561,
+            "height": 1660421,
+            "x_px": 48,
+            "y_px": 260,
+            "width_px": 172,
+            "height_px": 174,
+            "x_percent": 3.82,
+            "y_percent": 36.23,
+            "width_percent": 13.51,
+            "height_percent": 24.21
+          },
+          "image_path": "temp/img/slide1_pic40.png"
+        }
+      ]
+    },
+    {
+      "slide_number": "2",
+      "animated_elements": [
+        {
+          "id": "14",
+          "type": "picture",
+          "name": "Picture 2",
+          "rId": "rId3",
+          "url": "ppt/media/image7.png",
+          "position": {
+            "x": 10069110,
+            "y": 128235,
+            "width": 1886428,
+            "height": 491610,
+            "x_px": 1057,
+            "y_px": 13,
+            "width_px": 198,
+            "height_px": 51,
+            "x_percent": 82.59,
+            "y_percent": 1.87,
+            "width_percent": 15.47,
+            "height_percent": 7.17
+          },
+          "image_path": "temp/img/slide2_pic14.png"
+        },
+        {
+          "id": "22",
+          "type": "picture",
+          "name": "图片 21",
+          "rId": "rId5",
+          "url": "ppt/media/image9.png",
+          "position": {
+            "x": 773549,
+            "y": 2102562,
+            "width": 1604512,
+            "height": 1358856,
+            "x_px": 81,
+            "y_px": 220,
+            "width_px": 168,
+            "height_px": 142,
+            "x_percent": 6.34,
+            "y_percent": 30.66,
+            "width_percent": 13.16,
+            "height_percent": 19.81
+          },
+          "image_path": "temp/img/slide2_pic22.png"
+        },
+        {
+          "id": "1030",
+          "type": "picture",
+          "name": "Picture 6",
+          "rId": "rId6",
+          "url": "ppt/media/image10.jpeg",
+          "position": {
+            "x": 2133757,
+            "y": 3980342,
+            "width": 839071,
+            "height": 1119107,
+            "x_px": 224,
+            "y_px": 417,
+            "width_px": 88,
+            "height_px": 117,
+            "x_percent": 17.5,
+            "y_percent": 58.04,
+            "width_percent": 6.88,
+            "height_percent": 16.32
+          },
+          "image_path": "temp/img/slide2_pic1030.jpeg"
+        },
+        {
+          "id": "1032",
+          "type": "picture",
+          "name": "Picture 8",
+          "rId": "rId7",
+          "url": "ppt/media/image11.jpeg",
+          "position": {
+            "x": 606594,
+            "y": 3980342,
+            "width": 1525176,
+            "height": 1134210,
+            "x_px": 63,
+            "y_px": 417,
+            "width_px": 160,
+            "height_px": 119,
+            "x_percent": 4.98,
+            "y_percent": 58.04,
+            "width_percent": 12.51,
+            "height_percent": 16.54
+          },
+          "image_path": "temp/img/slide2_pic1032.jpeg"
+        },
+        {
+          "id": "1034",
+          "type": "picture",
+          "name": "Picture 10",
+          "rId": "rId8",
+          "url": "ppt/media/image12.jpeg",
+          "position": {
+            "x": 606594,
+            "y": 5099449,
+            "width": 984176,
+            "height": 1312640,
+            "x_px": 63,
+            "y_px": 535,
+            "width_px": 103,
+            "height_px": 137,
+            "x_percent": 4.98,
+            "y_percent": 74.36,
+            "width_percent": 8.07,
+            "height_percent": 19.14
+          },
+          "image_path": "temp/img/slide2_pic1034.jpeg"
+        },
+        {
+          "id": "1038",
+          "type": "picture",
+          "name": "Picture 14",
+          "rId": "rId9",
+          "url": "ppt/media/image13.jpeg",
+          "position": {
+            "x": 1590770,
+            "y": 5099449,
+            "width": 1384045,
+            "height": 1312640,
+            "x_px": 167,
+            "y_px": 535,
+            "width_px": 145,
+            "height_px": 137,
+            "x_percent": 13.05,
+            "y_percent": 74.36,
+            "width_percent": 11.35,
+            "height_percent": 19.14
+          },
+          "image_path": "temp/img/slide2_pic1038.jpeg"
+        }
+      ]
+    },
+    {
+      "slide_number": "3",
+      "animated_elements": [
+        {
+          "id": "14",
+          "type": "picture",
+          "name": "Picture 2",
+          "rId": "rId3",
+          "url": "ppt/media/image7.png",
+          "position": {
+            "x": 10069110,
+            "y": 128235,
+            "width": 1886428,
+            "height": 491610,
+            "x_px": 1057,
+            "y_px": 13,
+            "width_px": 198,
+            "height_px": 51,
+            "x_percent": 82.59,
+            "y_percent": 1.87,
+            "width_percent": 15.47,
+            "height_percent": 7.17
+          },
+          "image_path": "temp/img/slide3_pic14.png"
+        },
+        {
+          "id": "459",
+          "type": "picture",
+          "name": "图片 458",
+          "rId": "rId4",
+          "url": "ppt/media/image14.jpeg",
+          "position": {
+            "x": 2351590,
+            "y": 2711182,
+            "width": 1497451,
+            "height": 1534425,
+            "x_px": 246,
+            "y_px": 284,
+            "width_px": 157,
+            "height_px": 161,
+            "x_percent": 19.29,
+            "y_percent": 39.53,
+            "width_percent": 12.28,
+            "height_percent": 22.37
+          },
+          "image_path": "temp/img/slide3_pic459.jpeg"
+        }
+      ]
+    }
+  ],
+  "slide_dimensions": {
+    "width_emu": 12192000,
+    "height_emu": 6858000,
+    "width_px": 1280,
+    "height_px": 720
+  }
+}

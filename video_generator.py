@@ -1,184 +1,222 @@
 import os
+import json
 import subprocess
-import re
-from config import IMG_DIR, VIDEO_DIR, VOICE_DIR
+from pathlib import Path
+from PIL import Image
 
-def get_audio_duration(audio_path):
-    """获取音频时长（秒），兼容各种编码格式"""
-    try:
-        cmd = [
-            "ffprobe",
-            "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1",
-            "-hide_banner",
-            audio_path
-        ]
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=True,
-            encoding='utf-8',
-            errors='ignore'
-        )
-        return float(result.stdout.strip())
-    except Exception as e:
-        print(f"❌ 获取音频时长失败：{e}")
-        return None
-
-def check_audio_in_video(video_path):
-    """检查视频是否包含音频流"""
-    try:
-        cmd = [
-            "ffprobe",
-            "-v", "error",
-            "-show_entries", "stream=codec_type",
-            "-of", "csv=p=0",
-            "-hide_banner",
-            video_path
-        ]
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=True,
-            encoding='utf-8',
-            errors='ignore'
-        )
-        return "audio" in result.stdout.strip()
-    except Exception:
-        return False
-
-def generate_page_videos():
+def create_video_for_slide(slide_data, bg_image_path, output_video_path, fps=30):
     """
-    最终版：无滤镜错误，确保音频嵌入视频
+    为单张幻灯片生成动画视频。
+    新增参数控制：
+        element_duration: 每个元素出现后停留的秒数（默认1秒30帧）
     """
-    # 1. 目录校验
-    for dir_name, dir_path in {"图片目录": IMG_DIR, "音频目录": VOICE_DIR, "视频目录": VIDEO_DIR}.items():
-        if not os.path.exists(dir_path):
-            print(f"❌ {dir_name}不存在：{dir_path}")
-            return
-
-    # 2. 匹配图片文件
-    img_pattern = re.compile(r"^page_(\d+)\.png$")
-    img_files = [f for f in os.listdir(IMG_DIR) if img_pattern.match(f)]
+    slide_num = slide_data.get("slide_number", "1")
+    elements = slide_data.get("animated_elements", [])
     
-    if not img_files:
-        print(f"⚠️ 图片目录 {IMG_DIR} 中未找到page_*.png格式的文件")
+    if not elements:
+        print(f"  ⚠️  幻灯片 {slide_num} 无图片元素，跳过。")
         return
 
-    # 3. 遍历处理每个文件
-    for img_file in img_files:
-        match = img_pattern.match(img_file)
-        page_num = match.group(1)
-        
-        # 拼接路径（转短路径，避免中文/空格问题）
-        img_path = os.path.abspath(os.path.join(IMG_DIR, img_file))
-        audio_path = os.path.abspath(os.path.join(VOICE_DIR, f"page_{page_num}.mp3"))
-        video_path = os.path.abspath(os.path.join(VIDEO_DIR, f"page_{page_num}.mp4"))
+    # ============================================
+    # 🎯 关键参数：控制元素出现间隔
+    # ============================================
+    element_duration = 18 # 每个元素停留几帧
+    # 或者使用固定总时长方案：
+    # total_video_duration = 10  # 视频总长10秒
+    # element_duration = (total_video_duration - 1) / len(elements) if elements else 0
+    
+    print(f"  🎬 开始处理幻灯片 {slide_num}...")
+    print(f"     背景图：{bg_image_path}")
+    print(f"     元素数：{len(elements)} 个")
+    print(f"     元素停留时间：{element_duration} 秒/个")
+    
+    # 计算总时长
+    # 总时长 = 1秒（初始纯背景） + (元素数量 × 每个元素停留时间)
+    total_seconds = 1 + (len(elements) * element_duration)
+    print(f"     视频总时长：{total_seconds} 秒")
 
-        # 检查音频文件
-        if not os.path.exists(audio_path):
-            print(f"⚠️ 音频文件不存在，跳过：{audio_path}")
-            continue
+    # 创建临时目录存放每一秒的合成帧
+    temp_frame_dir = Path(f"temp_frames_slide_{slide_num}")
+    temp_frame_dir.mkdir(exist_ok=True)
 
-        # 获取音频时长
-        audio_duration = get_audio_duration(audio_path)
-        if not audio_duration or audio_duration <= 0:
-            print(f"⚠️ 音频时长无效，跳过：{audio_path}")
-            continue
-
-        print(f"\n📌 开始处理：page_{page_num}")
-        print(f"   图片：{img_path}")
-        print(f"   音频：{audio_path} (时长：{audio_duration:.2f}秒)")
-        print(f"   输出：{video_path}")
-
-        # ========== 修正后的ffmpeg命令（核心） ==========
-        # 关键改进：
-        # 1. 移除错误的filter_complex
-        # 2. 先输入图片，再输入音频，-t参数精准控制时长
-        # 3. 明确映射音视频流，确保音频嵌入
+    try:
+        # 步骤1：打开并准备背景图
         try:
-            cmd = [
-                "ffmpeg",
-                "-y",  # 覆盖已有文件
-                "-v", "error",  # 只输出错误
-                "-hide_banner", # 隐藏无关信息
-                # 输入1：图片（循环播放）
-                "-loop", "1",
-                "-i", img_path,
-                # 输入2：音频
-                "-i", audio_path,
-                # 视频参数
-                "-c:v", "libx264",        # H.264编码器（兼容性最好）
-                "-pix_fmt", "yuv420p",    # 兼容所有播放器
-                "-framerate", "25",       # 标准帧率
-                "-t", f"{audio_duration:.2f}",  # 精准设置视频时长=音频时长
-                # 音频参数（强制兼容MP4）
-                "-c:a", "aac",            # MP4标准音频编码器
-                "-b:a", "192k",           # 音频码率
-                "-ar", "44100",           # 标准采样率
-                # 明确映射流（关键！确保音频被包含）
-                "-map", "0:v",            # 映射图片的视频流
-                "-map", "1:a",            # 映射音频的音频流
-                # 输出视频
-                video_path
-            ]
-
-            # 执行ffmpeg命令
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=True,
-                encoding='utf-8',
-                errors='ignore'
-            )
-
-            # 验证结果
-            if os.path.exists(video_path):
-                has_audio = check_audio_in_video(video_path)
-                if has_audio:
-                    print(f"✅ 视频生成成功！音频已嵌入")
-                else:
-                    print(f"⚠️ 视频生成但无音频，尝试修复...")
-                    # 备用修复方案：重新封装音频
-                    fix_video_path = video_path.replace(".mp4", "_fix.mp4")
-                    fix_cmd = [
-                        "ffmpeg", "-y",
-                        "-i", video_path,
-                        "-i", audio_path,
-                        "-c:v", "copy",  # 视频流直接复制，不重新编码
-                        "-c:a", "aac",
-                        "-map", "0:v",
-                        "-map", "1:a",
-                        fix_video_path
-                    ]
-                    subprocess.run(fix_cmd, capture_output=True, encoding='utf-8', errors='ignore')
-                    if os.path.exists(fix_video_path):
-                        os.replace(fix_video_path, video_path)
-                        print(f"✅ 音频修复成功！")
-                    else:
-                        print(f"❌ 音频修复失败")
-            else:
-                print(f"❌ 视频文件未生成")
-
-        except subprocess.CalledProcessError as e:
-            print(f"❌ ffmpeg执行失败：{e.stderr[:300]}")  # 只打印前300字符
+            bg_img = Image.open(bg_image_path).convert("RGBA")
+            bg_width, bg_height = bg_img.size
+            print(f"     背景图尺寸：{bg_width} x {bg_height}")
         except Exception as e:
-            print(f"❌ 处理失败：{str(e)}")
+            print(f"  ❌ 无法打开背景图片 {bg_image_path}: {e}")
+            return
 
-    print("\n📝 所有文件处理完成！")
+        # 步骤2：预加载所有元素图片
+        element_images = []
+        for elem in elements:
+            img_path = elem.get("image_path")
+            if not img_path or not Path(img_path).exists():
+                print(f"  ⚠️  元素图片不存在: {img_path}，将跳过。")
+                element_images.append(None)
+                continue
+            try:
+                elem_img = Image.open(img_path).convert("RGBA")
+                element_images.append(elem_img)
+            except Exception as e:
+                print(f"  ⚠️  无法打开元素图片 {img_path}: {e}")
+                element_images.append(None)
+
+        # 步骤3：生成每一秒的静态画面（帧）
+        # 重要修改：现在秒数对应的是视频时间，而不是元素索引
+        current_second = 0
+        frame_index = 0
+        
+        # 第0秒：只显示背景（没有元素）
+        print(f"     生成第 {current_second} 秒画面（仅背景）...")
+        current_frame = bg_img.copy()
+        frame_path = temp_frame_dir / f"frame_{frame_index:03d}.png"
+        current_frame.convert("RGB").save(frame_path, "PNG")
+        current_second += 1
+        frame_index += 1
+        
+        # 对于每个元素，生成 element_duration 秒的画面
+        for elem_index in range(len(elements)):
+            print(f"     处理元素 {elem_index+1}（第{current_second/30}秒开始）...")
+            
+            # 为当前元素的每一秒生成画面
+            for duration_step in range(int(element_duration)):
+                # 创建当前背景副本
+                current_frame = bg_img.copy()
+                
+                # 粘贴所有已经出现的元素（包括当前元素）
+                for i in range(elem_index + 1):  # +1 表示包含当前元素
+                    if i >= len(elements):
+                        break
+                    elem_img = element_images[i]
+                    if elem_img is None:
+                        continue
+                    
+                    elem_data = elements[i]
+                    pos = elem_data.get("position", {})
+                    
+                    # 坐标缩放计算（与之前相同）
+                    elem_x_px = pos.get("x_px", 0)
+                    elem_y_px = pos.get("y_px", 0)
+                    elem_width_px = pos.get("width_px", 100)
+                    elem_height_px = pos.get("height_px", 100)
+                    
+                    scale_x = bg_width / 1280.0
+                    scale_y = bg_height / 720.0
+                    
+                    target_x = int(elem_x_px * scale_x)
+                    target_y = int(elem_y_px * scale_y)
+                    target_width = int(elem_width_px * scale_x)
+                    target_height = int(elem_height_px * scale_y)
+                    
+                    # 确保尺寸为偶数
+                    if target_width % 2 != 0:
+                        target_width += 1
+                    if target_height % 2 != 0:
+                        target_height += 1
+                    
+                    resized_elem_img = elem_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
+                    current_frame.paste(resized_elem_img, (target_x, target_y), resized_elem_img)
+                
+                # 保存当前合成帧
+                frame_path = temp_frame_dir / f"frame_{frame_index:03d}.png"
+                current_frame.convert("RGB").save(frame_path, "PNG")
+                frame_index += 1
+            
+            current_second += element_duration
+
+        print(f"     所有画面生成完毕（共{frame_index}帧），开始合成视频...")
+
+        # 步骤4：使用FFmpeg将所有静态帧合成为视频
+        # 注意：现在每帧播放时间不再是固定的1秒，需要调整FFmpeg参数
+        ffmpeg_cmd = [
+            "ffmpeg", "-y",
+            "-framerate", str(fps),  # 输入帧率
+            "-i", str(temp_frame_dir / "frame_%03d.png"),  # 输入图像序列
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            # 关键修改：使用-r指定输出帧率，而不是用-vf fps
+            "-r", str(fps),
+            output_video_path
+        ]
+        
+        result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True, encoding='utf-8', errors='ignore')
+        if result.returncode == 0:
+            print(f"  ✅ 幻灯片 {slide_num} 视频生成成功: {output_video_path}")
+            print(f"     视频时长：{total_seconds/30} 秒，帧率：{fps} fps")
+        else:
+            print(f"  ❌ 幻灯片 {slide_num} 视频合成失败:")
+            print(f"     错误信息: {result.stderr[:200]}")
+
+    except Exception as e:
+        print(f"  ❌ 处理幻灯片 {slide_num} 时发生未知错误: {e}")
+    finally:
+        # 步骤5：清理临时帧文件
+        if temp_frame_dir.exists():
+            for frame_file in temp_frame_dir.glob("*.png"):
+                frame_file.unlink()
+            temp_frame_dir.rmdir()
+
+def generate_all_ppt_videos(json_file_path="extract_pic.json", bg_img_dir="img", output_video_dir="temp/video", fps=30):
+    """
+    主函数：读取JSON，为每张幻灯片生成视频。
+    新增可选参数：
+        element_duration: 可从此函数传入（如果需要在外部统一控制）
+    """
+    print("=" * 60)
+    print("PPT图片动画视频生成器 (调整元素间隔版)")
+    print("=" * 60)
+
+    if not Path(json_file_path).exists():
+        print(f"❌ 找不到JSON文件: {json_file_path}")
+        return
+    try:
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"❌ 读取JSON文件失败: {e}")
+        return
+
+    slides = data.get("slides", [])
+    if not slides:
+        print("⚠️  JSON文件中未找到幻灯片数据。")
+        return
+
+    output_path = Path(output_video_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    print(f"📊 共发现 {len(slides)} 张幻灯片待处理。")
+    print("-" * 60)
+
+    for slide in slides:
+        slide_num = slide.get("slide_number")
+        bg_image_path = Path(bg_img_dir) / f"page_{slide_num}.png"
+        
+        if not bg_image_path.exists():
+            print(f"❌ 幻灯片 {slide_num} 的背景图不存在: {bg_image_path}")
+            continue
+        
+        output_video_path = output_path / f"page_{slide_num}.mp4"
+        
+        # 可以在这里统一设置所有幻灯片的元素间隔
+        # 例如，如果想所有幻灯片都使用3秒间隔，可以在这里设置
+        create_video_for_slide(slide, str(bg_image_path), str(output_video_path), fps)
+        print("-" * 40)
+
+    print("=" * 60)
+    print("✅ 所有幻灯片处理完成！")
+    print(f"   视频文件保存在: {output_video_dir}")
+    print("=" * 60)
     return True
 
-# 测试调用
 if __name__ == "__main__":
-    # 检查ffmpeg是否安装
-    try:
-        subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
-    except FileNotFoundError:
-        print("❌ 未找到ffmpeg！请安装并添加到系统环境变量")
-        exit(1)
+    # 配置参数
+    JSON_FILE = "extract_pic.json"
+    BACKGROUND_IMG_DIR = "./img"
+    OUTPUT_VIDEO_DIR = "./temp/video"
+    FPS = 30
     
-    generate_page_videos()
+    # 运行主程序
+    generate_all_ppt_videos(JSON_FILE, BACKGROUND_IMG_DIR, OUTPUT_VIDEO_DIR, FPS)
