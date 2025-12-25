@@ -53,7 +53,7 @@ def run_deletion_test(json_file_path, ppt_file_path):
     prs.save(output_pptx)
     print("-" * 50)
     print(f"🚀 任务完成！清理后的 PPT 已存至: {output_pptx}")
-    pptx_to_images(ppt_file_path)
+    pptx_to_images(output_pptx)
 
 if __name__ == "__main__":
-    run_deletion_test("extract_pic_example.json", "test.pptx")
+    run_deletion_test("extract_pic.json", "test.pptx")

@@ -10,6 +10,8 @@ from ai_script_generator import generate_ai_script
 from voice_synthesizer import synthesize_voices
 from video_generator import generate_page_videos
 from video_merger import merge_videos
+from gen_json import extract_only_images
+from delete_image import run_deletion_test
 
 def main():
     """主函数"""
@@ -53,14 +55,26 @@ def main():
         print("语音合成失败")
         sys.exit(1)
     
-    # 步骤4: 生成单页视频
-    print("\n[步骤4] 生成单页视频...")
+    # 步骤4: 提取每页ppt的图片元素
+    print("\n[步骤4] 提取并保存每页ppt的图片元素...")
+    if not extract_only_images(ppt_path, "extract_pic.json"):
+        print("图片元素提取失败")
+        sys.exit(1)
+
+    # 步骤5: 将元素删除后的img保存至/img
+    print("\n[步骤5] 将元素删除后的img保存至/img...")
+    if not run_deletion_test("extract_pic.json",ppt_path):
+        print("删除图片失败")
+        sys.exit(1)
+
+    # 步骤6: 生成单页视频
+    print("\n[步骤6] 生成单页视频...")
     if not generate_page_videos():
         print("单页视频生成失败")
         sys.exit(1)
     
-    # 步骤5: 合并视频
-    print("\n[步骤5] 合并视频...")
+    # 步骤7: 合并视频
+    print("\n[步骤7] 合并视频...")
     success, final_video = merge_videos()
     
     if success:
