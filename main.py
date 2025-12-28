@@ -34,7 +34,7 @@ def main():
     print("=" * 50)
     
     # 步骤1: 解析PPT
-    print("\n[步骤1] 解析PPT文件...")
+    print("\n[步骤1] 解析PPT文件中的文字...")
     try:
         ppt_text = extract_ppt_text(ppt_path)
         print("ppt_text\n",ppt_text)
@@ -50,8 +50,8 @@ def main():
         print("AI讲稿生成失败")
         sys.exit(1)
     
-    # 步骤3: 语音合成
-    print("\n[步骤3] 语音合成...")
+    # 步骤3: 语音生成讲稿
+    print("\n[步骤3] 语音生成讲稿...")
     if not synthesize_voices():
         print("语音合成失败")
         sys.exit(1)
@@ -75,13 +75,13 @@ def main():
         sys.exit(1)
     
     # 步骤7: 生成带音频单页视频
-    print("\n[步骤6] 生成带音频单页视频...")
+    print("\n[步骤7] 生成带音频单页视频...")
     if not merge_video_audio():
         print("单页带音频视频生成失败")
         sys.exit(1)
 
     # 步骤8: 合并视频
-    print("\n[步骤7] 合并视频...")
+    print("\n[步骤8] 合并视频...")
     success, final_video = merge_videos()
     
     if success:
